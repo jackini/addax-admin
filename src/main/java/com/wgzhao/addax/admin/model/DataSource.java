@@ -1,7 +1,13 @@
 package com.wgzhao.addax.admin.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import lombok.Data;
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,7 +35,7 @@ public class DataSource {
     @Column(name = "driver_class", length = 200)
     private String driverClass;
     
-    @Lob
+    @Column(name = "properties")
     private String properties;
     
     private String note;

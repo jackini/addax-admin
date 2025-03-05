@@ -1,8 +1,18 @@
 package com.wgzhao.addax.admin.model;
 
+import com.wgzhao.addax.admin.utils.JsonAttributeConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Data;
-import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "task_execution")
@@ -45,15 +55,12 @@ public class TaskExecution {
     @Column(name = "records_speed")
     private Long recordsSpeed;
 
-    @Lob
-    @Column(name = "error_message")
-    private String errorMessage;
-
     @Column(name = "log_path", length = 500)
     private String logPath;
 
     @Column(name = "execution_json")
-    private String executionJson;
+    @Convert(converter = JsonAttributeConverter.class)
+    private Map<String, Object> executionJson;
 
     @Column(name = "trigger_type", length = 20)
     private String triggerType;

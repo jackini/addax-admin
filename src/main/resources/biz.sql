@@ -1,5 +1,6 @@
+
 -- 数据源管理表
-CREATE TABLE data_source (
+CREATE TABLE IF NOT EXISTS data_source (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '数据源ID',
     name VARCHAR(100) NOT NULL COMMENT '数据源名称',
     db_type VARCHAR(50) NOT NULL COMMENT '数据库类型',
@@ -7,25 +8,25 @@ CREATE TABLE data_source (
     username VARCHAR(100) COMMENT '用户名',
     pass VARCHAR(255) COMMENT '密码（加密存储）',
     driver_class VARCHAR(200) COMMENT 'JDBC驱动类',
-    properties TEXT COMMENT '额外连接属性（JSON格式）',
+    properties JSON COMMENT '额外连接属性（JSON格式）',
     note VARCHAR(500) COMMENT '数据源描述',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_enable boolean NOT NULL DEFAULT true COMMENT '是否启用',
-    start_time time null comment '采集启动时间，格式为 HH:mm:ss'
+    start_time time null comment '采集启动时间，格式为 HH:mm:ss',
     UNIQUE KEY uk_name (name)
-) COMMENT='数据源配置表';
+) engine = innodb default charset 'utf8' COMMENT='数据源配置表';
 
 -- 源表读取模板
-CREATE TABLE source_template (
+CREATE TABLE IF NOT EXISTS source_template (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '模板ID',
     name VARCHAR(100) NOT NULL COMMENT '模板名称',
     fetch_size int not null default 10000 comment '每次读取的记录数',
     is_auto_pk boolean not null default false comment '是否自动查找主键主键'
-);
+) engine = innodb default charset 'utf8' comment = '数据源读取模板表';
 
 -- HDFS配置模板表
-CREATE TABLE hdfs_template (
+CREATE TABLE IF NOT EXISTS hdfs_template (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '模板ID',
     name VARCHAR(100) NOT NULL COMMENT '模板名称',
     default_fs VARCHAR(255) NOT NULL COMMENT 'defaultFS配置，如hdfs://localhost:9000 或 hdfs://cluster',
@@ -43,12 +44,12 @@ CREATE TABLE hdfs_template (
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_name (name)
-) COMMENT='HDFS配置模板表';
+) engine = innodb default charset 'utf8' COMMENT='HDFS配置模板表';
 
 -- 采集任务表
-CREATE TABLE collect_task (
+CREATE TABLE IF NOT EXISTS collect_task (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID',
-    source_id BIGINT NOT NULL COMMENT '数据源ID',
+    source_id INT NOT NULL COMMENT '数据源ID',
     source_schema VARCHAR(100) COMMENT '源模式名（适用于Oracle等）',
     source_table VARCHAR(200) NOT NULL COMMENT '源表名',
     target_schema VARCHAR(100) COMMENT '目标数据库名，针对Hive',
@@ -68,10 +69,10 @@ CREATE TABLE collect_task (
     CONSTRAINT fk_task_source FOREIGN KEY (source_id) REFERENCES data_source(id),
     CONSTRAINT fk_task_hdfs FOREIGN KEY (hdfs_template_id) REFERENCES hdfs_template(id),
     CONSTRAINT fk_task_template FOREIGN KEY (source_template_id) REFERENCES source_template(id)
-) COMMENT='采集任务表';
+) engine = innodb default charset 'utf8'  COMMENT='采集任务表';
 
 -- 任务执行记录表
-CREATE TABLE task_execution (
+CREATE TABLE IF NOT EXISTS task_execution (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '执行ID',
     task_id BIGINT NOT NULL COMMENT '任务ID',
     start_time DATETIME NOT NULL COMMENT '开始时间',
@@ -84,19 +85,17 @@ CREATE TABLE task_execution (
     rejected_records BIGINT COMMENT '拒绝记录数',
     bytes_speed BIGINT COMMENT '传输速率（bytes/s）',
     records_speed BIGINT COMMENT '记录速率（records/s）',
-    error_message TEXT COMMENT '错误信息',
     log_path VARCHAR(500) COMMENT 'Addax日志路径',
     execution_json JSON COMMENT '执行任务的JSON配置',
     trigger_type VARCHAR(20) COMMENT '触发类型：MANUAL, SCHEDULED',
     KEY idx_task_id (task_id),
-    KEY idx_batch_id (batch_id),
     KEY idx_start_time (start_time),
-    KEY idx_status (status),
+    KEY idx_status (exec_status),
     CONSTRAINT fk_execution_task FOREIGN KEY (task_id) REFERENCES collect_task(id)
-) COMMENT='任务执行记录表';
+) engine = innodb default charset 'utf8'  COMMENT='任务执行记录表';
 
 -- 表结构变更风险表
-CREATE TABLE schema_change_risk (
+CREATE TABLE IF NOT EXISTS schema_change_risk (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '风险ID',
     task_id BIGINT NOT NULL COMMENT '任务ID',
     source_table VARCHAR(200) NOT NULL COMMENT '源表名',
@@ -112,10 +111,10 @@ CREATE TABLE schema_change_risk (
     KEY idx_source_table (source_table),
     KEY idx_is_processed (is_processed),
     CONSTRAINT fk_risk_task FOREIGN KEY (task_id) REFERENCES collect_task(id)
-) COMMENT='表结构变更风险表';
+) engine = innodb default charset 'utf8'  COMMENT='表结构变更风险表';
 
 -- 源表元数据表
-CREATE TABLE source_table_meta (
+CREATE TABLE IF NOT EXISTS source_table_meta (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '元数据ID',
     task_id BIGINT NOT NULL COMMENT '任务ID',
     table_name VARCHAR(200) NOT NULL COMMENT '表名',
@@ -125,28 +124,27 @@ CREATE TABLE source_table_meta (
     column_position INT NOT NULL COMMENT '列位置',
     is_primary_key TINYINT NOT NULL DEFAULT 0 COMMENT '是否主键：0-否，1-是',
     is_nullable TINYINT NOT NULL DEFAULT 1 COMMENT '是否可为空：0-否，1-是',
-    column_default TEXT COMMENT '默认值',
     column_comment VARCHAR(500) COMMENT '列注释',
     last_check_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后检查时间',
     INDEX idx_task_id (task_id),
     INDEX idx_table_name (table_name),
     CONSTRAINT fk_meta_task FOREIGN KEY (task_id) REFERENCES collect_task(id)
-) COMMENT='源表元数据表';
+) engine = innodb default charset 'utf8'  COMMENT='源表元数据表';
 
 -- 系统配置表
-CREATE TABLE system_config (
+CREATE TABLE IF NOT EXISTS system_config (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '配置ID',
     config_group VARCHAR(50) NOT NULL COMMENT '配置组',
     config_key VARCHAR(100) NOT NULL COMMENT '配置键',
     config_value TEXT NOT NULL COMMENT '配置值',
-    description VARCHAR(500) COMMENT '配置描述',
+    note VARCHAR(500) COMMENT '配置描述',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_group_key (config_group, config_key)
-) COMMENT='系统配置表';
+) engine = innodb default charset 'utf8'  COMMENT='系统配置表';
 
 -- 字段映射规则表
-CREATE TABLE field_mapping_rule (
+CREATE TABLE IF NOT EXISTS field_mapping_rule (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '规则ID',
     source_type VARCHAR(100) NOT NULL COMMENT '源字段类型',
     target_type VARCHAR(100) NOT NULL COMMENT '目标字段类型',
@@ -154,10 +152,10 @@ CREATE TABLE field_mapping_rule (
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_source_target (source_type, target_type)
-) COMMENT='字段映射规则表';
+) engine = innodb default charset 'utf8'  COMMENT='字段映射规则表';
 
 -- 调度集成配置表
-CREATE TABLE scheduler_integration (
+CREATE TABLE IF NOT EXISTS scheduler_integration (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '配置ID',
     name VARCHAR(100) NOT NULL COMMENT '集成名称',
     scheduler_type VARCHAR(50) NOT NULL COMMENT '调度器类型：AZKABAN, AIRFLOW, DOLPHINSCHEDULER等',
@@ -165,83 +163,83 @@ CREATE TABLE scheduler_integration (
     username VARCHAR(100) COMMENT '用户名',
     password VARCHAR(255) COMMENT '密码（加密存储）',
     token VARCHAR(255) COMMENT '访问令牌',
-    properties TEXT COMMENT '其他配置属性（JSON格式）',
+    properties JSON COMMENT '其他配置属性（JSON格式）',
     is_default TINYINT NOT NULL DEFAULT 0 COMMENT '是否默认：0-否，1-是',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1-有效，0-无效',
     description VARCHAR(500) COMMENT '描述',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_name (name)
-) COMMENT='调度集成配置表';
+) engine = innodb default charset 'utf8'  COMMENT='调度集成配置表';
 
 -- 用户表
-CREATE TABLE user (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
-    username VARCHAR(100) NOT NULL COMMENT '用户名',
-    password VARCHAR(255) NOT NULL COMMENT '密码（加密存储）',
-    real_name VARCHAR(100) COMMENT '真实姓名',
-    email VARCHAR(100) COMMENT '邮箱',
-    phone VARCHAR(20) COMMENT '电话',
-    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1-启用，0-禁用',
-    last_login_time DATETIME COMMENT '最后登录时间',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY uk_username (username)
-) COMMENT='用户表';
+# CREATE TABLE IF NOT EXISTS user (
+#     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
+#     username VARCHAR(100) NOT NULL COMMENT '用户名',
+#     password VARCHAR(255) NOT NULL COMMENT '密码（加密存储）',
+#     real_name VARCHAR(100) COMMENT '真实姓名',
+#     email VARCHAR(100) COMMENT '邮箱',
+#     phone VARCHAR(20) COMMENT '电话',
+#     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1-启用，0-禁用',
+#     last_login_time DATETIME COMMENT '最后登录时间',
+#     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+#     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+#     UNIQUE KEY uk_username (username)
+# ) engine = innodb default charset 'utf8'  COMMENT='用户表';
 
 -- 角色表
-CREATE TABLE role (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '角色ID',
-    role_name VARCHAR(100) NOT NULL COMMENT '角色名称',
-    role_code VARCHAR(100) NOT NULL COMMENT '角色编码',
-    description VARCHAR(500) COMMENT '角色描述',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY uk_role_code (role_code)
-) COMMENT='角色表';
+# CREATE TABLE IF NOT EXISTS role (
+#     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '角色ID',
+#     role_name VARCHAR(100) NOT NULL COMMENT '角色名称',
+#     role_code VARCHAR(100) NOT NULL COMMENT '角色编码',
+#     description VARCHAR(500) COMMENT '角色描述',
+#     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+#     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+#     UNIQUE KEY uk_role_code (role_code)
+# ) engine = innodb default charset 'utf8'  COMMENT='角色表';
 
 -- 操作日志表
-CREATE TABLE operation_log (
+CREATE TABLE IF NOT EXISTS operation_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '日志ID',
     user_id BIGINT COMMENT '用户ID',
     username VARCHAR(100) COMMENT '用户名',
     operation VARCHAR(200) NOT NULL COMMENT '操作内容',
     method VARCHAR(100) COMMENT '请求方法',
-    params TEXT COMMENT '请求参数',
+    params JSON COMMENT '请求参数',
     time BIGINT COMMENT '执行时长(毫秒)',
     ip VARCHAR(64) COMMENT 'IP地址',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     INDEX idx_user_id (user_id),
     INDEX idx_create_time (create_time)
-) COMMENT='操作日志表';
+) engine = innodb default charset 'utf8'  COMMENT='操作日志表';
 
-create table users(
+create table if not exists users(
     username varchar(50) not null primary key,
     password varchar(500) not null,
     enabled boolean not null
 );
 
-create table authorities (
-    username varchar(50) not null,
-    authority varchar(50) not null,
-    constraint fk_authorities_users foreign key(username) references users(username)
-);
-create unique index ix_auth_username on authorities (username,authority);
-
-create table groups (
-    id bigint generated by default as identity(start with 1) primary key,
-    group_name varchar(50) not null
-);
-
-create table group_authorities (
-    group_id bigint not null,
-    authority varchar(50) not null,
-    constraint fk_group_authorities_group foreign key(group_id) references groups(id)
-);
-
-create table group_members (
-        id bigint generated by default as identity(start with 1) primary key,
-        username varchar(50) not null,
-        group_id bigint not null,
-        constraint fk_group_members_group foreign key(group_id) references groups(id)
-);
+# create table if not exists authorities (
+#     username varchar(50) not null,
+#     authority varchar(50) not null,
+#     constraint fk_authorities_users foreign key(username) references users(username)
+# );
+# create unique index ix_auth_username on authorities (username,authority);
+#
+# create table if not exists groups (
+#     id bigint generated by default as identity(start with 1) primary key,
+#     group_name varchar(50) not null
+# );
+#
+# create table if not exists group_authorities (
+#     group_id bigint not null,
+#     authority varchar(50) not null,
+#     constraint fk_group_authorities_group foreign key(group_id) references groups(id)
+# );
+#
+# create table if not exists group_members (
+#         id bigint generated by default as identity(start with 1) primary key,
+#         username varchar(50) not null,
+#         group_id bigint not null,
+#         constraint fk_group_members_group foreign key(group_id) references groups(id)
+# );

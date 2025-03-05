@@ -1,8 +1,16 @@
 package com.wgzhao.addax.admin.model;
 
+import com.wgzhao.addax.admin.utils.JsonAttributeConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
-import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "hdfs_template")
@@ -42,8 +50,9 @@ public class HdfsTemplate {
     @Column(name = "keytab_path", length = 500)
     private String keytabPath;
 
-    @Lob
-    private String properties;
+    @Column(name = "properties")
+    @Convert(converter = JsonAttributeConverter.class)
+    private Map<String, Object> properties;
 
     private String note;
 
