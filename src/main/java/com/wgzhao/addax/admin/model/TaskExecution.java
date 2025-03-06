@@ -22,9 +22,8 @@ public class TaskExecution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
-    private CollectTask task;
+    private Integer taskId;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

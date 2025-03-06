@@ -50,4 +50,57 @@ public class DbUtil {
             return false;
         }
     }
+
+    public static String getReaderName(String url) {
+        if (url.contains("mysql")) {
+            return "mysqlreader";
+        } else if (url.contains("oracle")) {
+            return "oraclereader";
+        } else if (url.contains("sqlserver")) {
+            return "sqlserverreader";
+        } else if (url.contains("postgresql")) {
+            return "postgresqlreader";
+        } else if (url.contains("db2")) {
+            return "db2reader";
+        } else if (url.contains("sqlite")) {
+            return "sqliterader";
+        } else if (url.contains("h2")) {
+            return "h2reader";
+        } else if (url.contains("derby")) {
+            return "derbyreader";
+        } else if (url.contains("clickhouse") || url.contains("chk")) {
+            return "clickhousereader";
+        } else if (url.contains("mongodb")) {
+            return "mongodbreader";
+        } else if (url.contains("hdfs")) {
+            return "hdfsreader";
+        } else if (url.contains("hbase")) {
+            return "hbasereader";
+        } else if (url.contains("redis")) {
+            return "redisreader";
+        } else if (url.contains("es")) {
+            return "esreader";
+        } else if (url.contains("pulsar")) {
+            return "pulsarreader";
+        } else if (url.contains("doris")) {
+            return "dorisreader";
+        } else if (url.contains("hbase")) {
+            return "hbasereader";
+        } else if (url.contains("redis")) {
+            return "redisreader";
+        } else if (url.contains("es")) {
+            return "esreader";
+        } else if (url.contains("kafka")) {
+            return "kafkareader";
+        } else if (url.contains("rocketmq")) {
+            return "rocketmqreader";
+        } else if (url.contains("pulsar")) {
+            return "pulsarreader";
+        } else if (url.contains("doris")) {
+            return "dorisreader";
+        }
+        else {
+            return "rdbmsreader";
+        }
+    }
 }

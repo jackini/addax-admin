@@ -55,6 +55,9 @@ public class CollectTask {
     @Column(name = "retry_times")
     private Integer retryTimes = 3;
 
+    @Column(name = "cron_expression")
+    private String cronExpression;
+
     @Column(name = "etl_freq", nullable = false, length = 1)
     private String etlFrequency = "D";
 
