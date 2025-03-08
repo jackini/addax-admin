@@ -33,13 +33,25 @@ public class AsyncConfig {
         return executor;
     }
     
-    @Bean(name = "resultProcessorExecutor")
-    public Executor resultProcessorExecutor() {
+    @Bean(name = "queueConsumer")
+    public Executor queueConsumerExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(50);
-        executor.setThreadNamePrefix("Result-Processor-");
+        executor.setThreadNamePrefix("Queue-Consumer-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "updateCollect")
+    public Executor updateCollectExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("Update-Collect-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;

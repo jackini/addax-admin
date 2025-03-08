@@ -8,11 +8,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "database_source")
+@Table(name = "data_source")
 @Data
+@Setter
+@Getter
 public class DataSource {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

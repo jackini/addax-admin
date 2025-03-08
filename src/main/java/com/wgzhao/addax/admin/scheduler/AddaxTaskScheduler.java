@@ -34,6 +34,7 @@ public class AddaxTaskScheduler
     @Scheduled(fixedRate = 5000)
     public void pollExecuteTasks() {
         List<CollectTask> pendingTasks = collectTaskService.getNeedCollectTask();
+        log.info("Found {} tasks to execute", pendingTasks.size());
         pendingTasks.forEach(task -> {
             if (shouldExecute(task)) {
                 log.info("Dispatching task: {}", task.getId());

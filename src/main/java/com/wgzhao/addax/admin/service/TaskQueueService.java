@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.CollectTask;
-import com.wgzhao.addax.admin.model.CollectTaskResult;
 import com.wgzhao.addax.admin.model.TaskExecution;
 import com.wgzhao.addax.admin.repository.CollectTaskRepository;
 
@@ -17,7 +16,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import oracle.ucp.util.Task;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -42,7 +42,7 @@ public class TaskQueueService {
 
     @Async("queueConsumer")
     public void monitorTaskQueue() {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 Long taskId = taskQueue.take();
                 processTask(taskId);
@@ -194,5 +194,20 @@ public class TaskQueueService {
         taskExecution.setFailedRecords(Long.parseLong(stats[6].split(":")[1].trim()));
         taskExecution.setBytesSpeed(Long.parseLong(stats[3].split(":")[1].trim().replace("B/s", "")));
         taskExecution.setRecordsSpeed(Long.parseLong(stats[4].split(":")[1].trim().replace("rec/s", "")));
+    }
+
+    /**
+     * 在容器启动时自动调用 monitorTaskQueue()，开启队列监控
+     */
+    @PostConstruct
+    public void init() {
+        log.info("TaskQueueService 初始化，启动队列消费者线程");
+        monitorTaskQueue();
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("TaskQueueService 正在关闭，停止队列监控线程");
+        // 线程自动退出时会处理中断状态
     }
 }
