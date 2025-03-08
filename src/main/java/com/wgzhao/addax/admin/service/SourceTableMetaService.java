@@ -4,10 +4,12 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.SourceTableMeta;
 import com.wgzhao.addax.admin.repository.SourceTableMetaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -47,7 +49,8 @@ public class SourceTableMetaService {
     }
 
 
-    public List<String> getColumns(Long id) {
-        return repository.getColumnNameByTaskId(id);
+    public List<Pair<String, String>> getColumnInfo(Long id) {
+        List<SourceTableMeta> sourceTableMetas = repository.findByTaskId(id);
+        return sourceTableMetas.stream().map(meta -> Pair.of(meta.getColumnName(), meta.getColumnType())).toList();
     }
 }

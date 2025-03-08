@@ -8,8 +8,6 @@ import java.time.LocalDateTime;
 @Builder
 public class CollectTaskResult {
     private Long taskId;
-    private String batchId;
-    private String status;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Integer duration;
@@ -19,6 +17,4 @@ public class CollectTaskResult {
     private Long rejectedRecords;
     private Long bytesSpeed;
     private Long recordsSpeed;
-    private String errorMessage;
-    private String logPath;
 }

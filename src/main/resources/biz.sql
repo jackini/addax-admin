@@ -75,11 +75,11 @@ CREATE TABLE IF NOT EXISTS collect_task (
 -- 任务执行记录表
 CREATE TABLE IF NOT EXISTS task_execution (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '执行ID',
-    task_id BIGINT NOT NULL COMMENT '任务ID',
+    collect_id BIGINT NOT NULL COMMENT '任务ID',
     start_time DATETIME NOT NULL COMMENT '开始时间',
     end_time DATETIME COMMENT '结束时间',
     duration INT COMMENT '执行时长（秒）',
-    exec_status VARCHAR(20) NOT NULL COMMENT '执行状态：WATTING, RUNNING, SUCCESS, FAILED, TIMEOUT',
+    exec_status VARCHAR(20) NOT NULL COMMENT '执行状态：WAITING, RUNNING, SUCCESS, FAILED, TIMEOUT',
     total_records BIGINT COMMENT '总处理记录数',
     success_records BIGINT COMMENT '成功记录数',
     failed_records BIGINT COMMENT '失败记录数',
@@ -89,10 +89,10 @@ CREATE TABLE IF NOT EXISTS task_execution (
     log_path VARCHAR(500) COMMENT 'Addax日志路径',
     execution_json JSON COMMENT '执行任务的JSON配置',
     trigger_type VARCHAR(20) COMMENT '触发类型：MANUAL, SCHEDULED',
-    KEY idx_task_id (task_id),
+    KEY idx_collect_id (collect_id),
     KEY idx_start_time (start_time),
     KEY idx_status (exec_status),
-    CONSTRAINT fk_execution_task FOREIGN KEY (task_id) REFERENCES collect_task(id)
+    CONSTRAINT fk_execution_task FOREIGN KEY (collect_id) REFERENCES collect_task(id)
 ) engine = innodb default charset 'utf8'  COMMENT='任务执行记录表';
 
 -- 表结构变更风险表

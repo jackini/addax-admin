@@ -17,7 +17,6 @@ public class SourceTableMeta {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
     @JoinColumn(name = "task_id", nullable = false)
     private Long taskId;
 

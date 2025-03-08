@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -22,8 +21,8 @@ public class TaskExecution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "task_id", nullable = false)
-    private Integer taskId;
+    @JoinColumn(name = "collect_id", nullable = false)
+    private Long collectId;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

@@ -15,7 +15,16 @@ public class CollectTaskService {
 
     // 获取所有需要采集的任务
     // task_status = 'N'
-    public List<CollectTask> getCollectTasks() {
-        return collectTaskRepository.findByTaskStatus("N");
+    public List<CollectTask> getNeedCollectTask() {
+        return collectTaskRepository.findByStatus("N");
+    }
+
+    public CollectTask getCollectTask(long collectId) {
+        return collectTaskRepository.findById(collectId).orElse(null);
+    }
+
+    public void save(CollectTask task)
+    {
+        collectTaskRepository.save(task);
     }
 }

@@ -9,13 +9,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 
 @Entity
 @Table(name = "hdfs_template")
 @Data
-public class HdfsTemplate {
+@Setter
+@Getter
+public class HdfsTemplate
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
