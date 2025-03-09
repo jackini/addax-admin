@@ -52,7 +52,7 @@ public class CollectTask {
     private String whereCondition = "1=1";
 
     @Column(name = "task_status", nullable = false, length = 1)
-    private String status = "N";
+    private String taskStatus = "N";
 
     @Column(name = "timeout_secs")
     private Integer timeoutSeconds = 7200;

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.constant.ExecStatus;
 import com.wgzhao.addax.admin.model.CollectTask;
 import com.wgzhao.addax.admin.model.TaskExecution;
 import com.wgzhao.addax.admin.repository.CollectTaskRepository;
@@ -12,8 +13,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.annotation.PostConstruct;
@@ -26,7 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-public class TaskQueueService {
+public class TaskConsumerService
+{
     @Autowired
     private TaskExecutionService taskExecutionService;
     @Autowired
@@ -34,21 +34,22 @@ public class TaskQueueService {
     @Autowired
     private SystemConfigService configService;
 
-    private final BlockingQueue<Long> taskQueue = new LinkedBlockingQueue<>();
+    @Autowired
+    private RedisQueueService redisQueueService; // 队列服务，用于拉取任务
 
-    public void enqueueTask(Long taskId) {
-        taskQueue.offer(taskId);
-    }
 
     @Async("queueConsumer")
     public void monitorTaskQueue() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                Long taskId = taskQueue.take();
-                processTask(taskId);
-            } catch (InterruptedException e) {
-                log.error("Task queue monitoring interrupted", e);
-                Thread.currentThread().interrupt();
+                // 阻塞式从 Redis 队列中获取下一任务
+                String taskId = redisQueueService.dequeueTask();
+                if (taskId != null) {
+                    log.info("消费任务: {}", taskId);
+                    processTask(Long.parseLong(taskId));
+                }
+            } catch (Exception ex) {
+                log.error("消费任务时出现异常: ", ex);
             }
         }
     }
@@ -57,17 +58,21 @@ public class TaskQueueService {
         try {
             TaskExecution execution = taskExecutionService.getTaskExecution(taskId);
             CollectTask task = collectTaskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElse(null);
+            if (task == null) {
+                log.error("Task not found: {}", taskId);
+                return;
+            }
 
             // Update execution status to RUNNING
-            execution.setStatus("RUNNING");
+            execution.setExecStatus(ExecStatus.RUNNING.getCode());
             taskExecutionService.updateExecution(execution);
 
             // Execute Addax job
             boolean result = executeAddaxTask(taskId);
 
             // Update collect task status
-            task.setStatus(result ? "Y": "E");
+            task.setTaskStatus(result ? "Y": "E");
             collectTaskRepository.save(task);
 
         } catch (Exception e) {
@@ -79,7 +84,7 @@ public class TaskQueueService {
     private void handleTaskFailure(Long taskId, Exception e) {
         // Update task status to failed and log error
         TaskExecution execution = taskExecutionService.getTaskExecution(taskId);
-        execution.setStatus("FAILED");
+        execution.setExecStatus(ExecStatus.FAILED.getCode());
         taskExecutionService.updateExecution(execution);
 
         // Optionally implement retry logic here
@@ -105,10 +110,10 @@ public class TaskQueueService {
         }
     }
     
-    @Async("resultProcessorExecutor")
+    @Async("updateCollect")
     public void updateCollectTaskStatus(long taskExecuteId, boolean result) {
         CollectTask collect = taskExecutionService.getCollect(taskExecuteId);
-        collect.setStatus(result ? "Y": "E");
+        collect.setTaskStatus(result ? "Y": "E");
         // save
         collectTaskRepository.save(collect);
     }
@@ -119,7 +124,7 @@ public class TaskQueueService {
 
         TaskExecution execution = new TaskExecution();
         execution.setStartTime(startTime);
-        execution.setStatus("RUNNING");
+        execution.setExecStatus(ExecStatus.RUNNING.getCode());
         execution.setTriggerType("SCHEDULED");
 
         try {
@@ -138,7 +143,7 @@ public class TaskQueueService {
 
             if (!completed) {
                 process.destroyForcibly();
-                taskExecution.setStatus("FAILED");
+                taskExecution.setExecStatus(ExecStatus.FAILED.getCode());
                 taskExecutionService.save(taskExecution);
                 throw new RuntimeException("Task timed out after 7200 seconds");
             }
@@ -152,7 +157,7 @@ public class TaskQueueService {
             return true;
         } catch (Exception e) {
             log.error("Addax task execution failed for task {}", taskExecutionId, e);
-            taskExecution.setStatus("FAILED");
+            taskExecution.setExecStatus(ExecStatus.FAILED.getCode());
             taskExecutionService.save(taskExecution);
             return false;
         }
@@ -188,7 +193,7 @@ public class TaskQueueService {
         String[] lines = output.split("\n");
         // Extract the last 9 lines
         String[] stats = Arrays.copyOfRange(lines, lines.length - 9, lines.length);
-        taskExecution.setStatus("SUCCESS");
+        taskExecution.setExecStatus(ExecStatus.SUCCESS.getCode());
         taskExecution.setTotalRecords(Long.parseLong(stats[5].split(":")[1].trim()));
         taskExecution.setSuccessRecords(taskExecution.getTotalRecords() - Long.parseLong(stats[6].split(":")[1].trim()));
         taskExecution.setFailedRecords(Long.parseLong(stats[6].split(":")[1].trim()));

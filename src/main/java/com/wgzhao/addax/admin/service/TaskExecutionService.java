@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.constant.ExecStatus;
 import com.wgzhao.addax.admin.model.CollectTask;
 import com.wgzhao.addax.admin.model.CollectTaskResult;
 import com.wgzhao.addax.admin.model.TaskExecuteResult;
@@ -34,6 +35,9 @@ public class TaskExecutionService {
 
     @Autowired
     private CollectTaskRepository collectTaskRepository;
+
+    @Autowired
+    private AddaxJobGenerator addaxJobGenerator;
 
 
     public TaskExecution getTaskExecution(long taskExecutionId)
@@ -73,6 +77,23 @@ public class TaskExecutionService {
 
     public boolean existTask(long collectId)
     {
-        return taskExecutionRepository.countValidTaskExecution(collectId) > 0;
+//        return taskExecutionRepository.countByCollectIdAndStartTimeAfter(collectId, LocalDateTime.now()) > 0;
+        return taskExecutionRepository.countByExecStatusNotAndCollectId(ExecStatus.SUCCESS.getCode(), collectId) > 0;
+    }
+
+    public TaskExecution getLastExecution(Long collectId)
+    {
+        return taskExecutionRepository.findFirstByCollectIdAndStartTimeAfterOrderByStartTimeDesc(collectId, LocalDateTime.now());
+    }
+
+    public long createPendingExecution(CollectTask task) {
+        TaskExecution execution = new TaskExecution();
+        execution.setCollectId(task.getId());
+        execution.setStartTime(LocalDateTime.now());
+        execution.setExecStatus(ExecStatus.WAITING.getCode());
+        execution.setTriggerType("SCHEDULED");
+        execution.setExecutionJson(addaxJobGenerator.generateJobConfig(task));
+        execution =  taskExecutionRepository.save(execution);
+        return execution.getId();
     }
 }

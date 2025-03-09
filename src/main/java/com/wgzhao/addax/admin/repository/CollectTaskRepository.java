@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface CollectTaskRepository extends JpaRepository<CollectTask, Long> {
-    List<CollectTask> findByStatus(String n);
+    List<CollectTask> findByTaskStatus(String n);
     // You can add custom query methods here as needed
 }

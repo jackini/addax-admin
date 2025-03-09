@@ -5,11 +5,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 @Repository
 public interface TaskExecutionRepository extends JpaRepository<TaskExecution, Long> {
 
     Long  getCollectIdById(long taskExecuteId);
 
-    @Query(value = "SELECT COUNT(*) FROM TaskExecution e  WHERE e.collectId = :collectId AND e.startTime > CURRENT_DATE")
-    int countValidTaskExecution(long collectId);
+    int countByCollectIdAndStartTimeAfter(long collectId, LocalDateTime startTime);
+
+    TaskExecution findFirstByCollectIdAndStartTimeAfterOrderByStartTimeDesc(Long collectId, LocalDateTime startTime);
+
+    int countByExecStatusNotAndCollectId(String status, long collectId);
 }

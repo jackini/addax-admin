@@ -33,7 +33,7 @@ public class TaskExecution {
     private Integer duration;
 
     @Column(name = "exec_status", nullable = false, length = 20)
-    private String status;
+    private String execStatus;
 
     @Column(name = "total_records")
     private Long totalRecords;
