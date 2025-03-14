@@ -246,32 +246,41 @@ create table if not exists users(
 # );
 
 
--- 采集调度工具设计方案（基于 collect_job 和 job_execution ）
-
-根据您的要求，我将重新实现采集调度工具的设计方案，以 collect_job 和 job_execution 为核心。以下是完整的设计方案：
-
-## 数据库表设计
-
-首先，需要在您现有的数据库结构中添加以下表：
-```sql
+-- 采集作业表
 -- 采集作业表
 CREATE TABLE IF NOT EXISTS collect_job (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '作业ID',
     job_name VARCHAR(100) NOT NULL COMMENT '作业名称',
     job_group VARCHAR(50) DEFAULT 'DEFAULT' COMMENT '作业分组',
+    source_id INT NOT NULL COMMENT '数据源ID',
+    source_schema VARCHAR(100) COMMENT '源模式名（适用于Oracle等）',
+    source_table VARCHAR(200) NOT NULL COMMENT '源表名',
+    target_schema VARCHAR(100) COMMENT '目标数据库名，针对Hive',
+    target_table VARCHAR(200) NOT NULL COMMENT '目标表名，默认情况下和源表名相同',
+    source_template_id INT NOT NULL COMMENT '源表读取模板ID',
+    hdfs_template_id INT NOT NULL COMMENT 'HDFS模板ID',
+    where_condition VARCHAR(200) NOT NULL DEFAULT '1=1' COMMENT '过滤条件',
     cron_expression VARCHAR(50) NOT NULL COMMENT '定时任务表达式',
     job_status CHAR(1) NOT NULL DEFAULT 'N' COMMENT '作业状态：N-未运行, R-运行中, P-暂停, X-已禁用',
     concurrent_flag TINYINT NOT NULL DEFAULT 0 COMMENT '是否允许并发执行：0-禁止，1-允许',
     timeout_secs INT DEFAULT 7200 COMMENT '超时时间（秒）',
     retry_times INT DEFAULT 3 COMMENT '重试次数',
     retry_interval INT DEFAULT 60 COMMENT '重试间隔（秒）',
+    etl_freq CHAR(1) NOT NULL DEFAULT 'D' COMMENT '采集频率: D-天, W-周, M-月, H-小时',
+    need_create_table CHAR(2) NOT NULL DEFAULT 'Yn' COMMENT '是否自动创建目标表, Y-需要, N-不需要, y-已经创建, n-未创建',
+    need_update_meta CHAR(2) NOT NULL DEFAULT 'Ny' COMMENT '是否自动更新元数据, Y-需要, N-不需要, y-已经更新, n-未更新',
     description VARCHAR(500) COMMENT '作业描述',
     next_fire_time DATETIME COMMENT '下次执行时间',
     last_fire_time DATETIME COMMENT '上次执行时间',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY uk_job_name (job_name)
+    UNIQUE KEY uk_job_name (job_name),
+    UNIQUE KEY uk_job_source (source_id, source_schema, source_table),
+    CONSTRAINT fk_job_source FOREIGN KEY (source_id) REFERENCES data_source(id),
+    CONSTRAINT fk_job_hdfs FOREIGN KEY (hdfs_template_id) REFERENCES hdfs_template(id),
+    CONSTRAINT fk_job_template FOREIGN KEY (source_template_id) REFERENCES source_template(id)
 ) engine = innodb default charset 'utf8' COMMENT='采集作业表';
+
 
 -- 作业任务关联表
 CREATE TABLE IF NOT EXISTS job_task_relation (
@@ -296,12 +305,13 @@ CREATE TABLE IF NOT EXISTS job_execution (
     exec_status VARCHAR(20) NOT NULL COMMENT '执行状态：WAITING, RUNNING, SUCCESS, FAILED, TIMEOUT',
     trigger_type VARCHAR(20) COMMENT '触发类型：MANUAL, SCHEDULED',
     error_message TEXT COMMENT '错误信息',
+    addax_json TEXT COMMENT 'Addax任务定义JSON',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     KEY idx_job_id (job_id),
     KEY idx_start_time (start_time),
     KEY idx_status (exec_status),
     CONSTRAINT fk_execution_job FOREIGN KEY (job_id) REFERENCES collect_job(id)
 ) engine = innodb default charset 'utf8' COMMENT='作业执行记录表';
-```
+
 
 

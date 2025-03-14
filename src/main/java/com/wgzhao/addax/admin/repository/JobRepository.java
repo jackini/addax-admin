@@ -32,5 +32,32 @@ public interface JobRepository extends JpaRepository<CollectJob, Long> {
      * @param jobGroup 作业分组
      * @return 作业列表
      */
+    /**
+     * 根据作业组查找作业
+     * @param jobGroup 作业组
+     * @return 作业列表
+     */
     List<CollectJob> findByJobGroup(String jobGroup);
+    
+    /**
+     * 根据作业组和状态查找作业
+     * @param jobGroup 作业组
+     * @param jobStatus 作业状态
+     * @return 作业列表
+     */
+    List<CollectJob> findByJobGroupAndJobStatus(String jobGroup, String jobStatus);
+    
+    /**
+     * 查找非指定状态的作业
+     * @param jobStatus 排除的作业状态
+     * @return 作业列表
+     */
+    List<CollectJob> findByJobStatusNot(String jobStatus);
+    
+    /**
+     * 根据作业状态查找作业
+     * @param jobStatus 作业状态
+     * @return 作业列表
+     */
+    List<CollectJob> findByJobStatus(String jobStatus);
 }

@@ -41,6 +41,9 @@ public class JobExecution {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
     
+    @Column(name = "addax_json", columnDefinition = "TEXT")
+    private String addaxJson;
+    
     @Column(name = "create_time", nullable = false, updatable = false)
     private LocalDateTime createTime;
     

@@ -232,4 +232,23 @@ public class JobController {
         List<Map<String, Object>> tasks = jobService.getTasksWithOrderByJobId(jobId);
         return ResponseEntity.ok(tasks);
     }
+    
+    /**
+     * 手动批量触发所有作业
+     * 用于非工作日采集或自动采集失败后的补偿
+     */
+    @PostMapping("/trigger-batch")
+    public ResponseEntity<Map<String, Object>> triggerBatchJobs(
+            @RequestParam(required = false) String jobGroup,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDisabled) {
+        
+        logger.info("开始手动批量触发作业，作业组：{}，包含禁用作业：{}", jobGroup, includeDisabled);
+        
+        Map<String, Object> result = jobService.triggerBatchJobs(jobGroup, includeDisabled);
+        
+        logger.info("手动批量触发作业完成，成功：{}，失败：{}", 
+                result.get("successCount"), result.get("failureCount"));
+        
+        return ResponseEntity.ok(result);
+    }
 }

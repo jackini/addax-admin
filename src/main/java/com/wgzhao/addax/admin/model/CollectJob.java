@@ -10,7 +10,6 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Data;
 
-
 import java.time.LocalDateTime;
 
 @Data
@@ -28,6 +27,34 @@ public class CollectJob {
     @Column(name = "job_group")
     private String jobGroup;
     
+    // 数据源相关字段
+    @Column(name = "source_id", nullable = false)
+    private Integer sourceId;
+    
+    @Column(name = "source_schema")
+    private String sourceSchema;
+    
+    @Column(name = "source_table", nullable = false)
+    private String sourceTable;
+    
+    @Column(name = "target_schema")
+    private String targetSchema;
+    
+    @Column(name = "target_table", nullable = false)
+    private String targetTable;
+    
+    // 模板相关字段
+    @Column(name = "source_template_id", nullable = false)
+    private Integer sourceTemplateId;
+    
+    @Column(name = "hdfs_template_id", nullable = false)
+    private Integer hdfsTemplateId;
+    
+    // 过滤条件
+    @Column(name = "where_condition", nullable = false)
+    private String whereCondition;
+    
+    // 调度相关字段
     @Column(name = "cron_expression", nullable = false)
     private String cronExpression;
     
@@ -46,9 +73,20 @@ public class CollectJob {
     @Column(name = "retry_interval")
     private Integer retryInterval;
     
+    // ETL相关字段
+    @Column(name = "etl_freq", nullable = false)
+    private String etlFreq;
+    
+    @Column(name = "need_create_table", nullable = false)
+    private String needCreateTable;
+    
+    @Column(name = "need_update_meta", nullable = false)
+    private String needUpdateMeta;
+    
     @Column(name = "description")
     private String description;
     
+    // 执行时间相关字段
     @Column(name = "next_fire_time")
     private LocalDateTime nextFireTime;
     
@@ -65,6 +103,26 @@ public class CollectJob {
     protected void onCreate() {
         createTime = LocalDateTime.now();
         updateTime = LocalDateTime.now();
+        
+        // 设置默认值
+        if (whereCondition == null) {
+            whereCondition = "1=1";
+        }
+        if (etlFreq == null) {
+            etlFreq = "D";
+        }
+        if (needCreateTable == null) {
+            needCreateTable = "Yn";
+        }
+        if (needUpdateMeta == null) {
+            needUpdateMeta = "Ny";
+        }
+        if (jobStatus == null) {
+            jobStatus = "N"; // 默认未运行
+        }
+        if (concurrentFlag == null) {
+            concurrentFlag = 0; // 默认不允许并发
+        }
     }
     
     @PreUpdate

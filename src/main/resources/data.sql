@@ -37,3 +37,14 @@ INSERT INTO field_mapping_rule (SOURCE_TYPE, TARGET_TYPE, NOTE) VALUES('smallint
 INSERT INTO field_mapping_rule (SOURCE_TYPE, TARGET_TYPE, NOTE) VALUES('string', 'string', '2024-13-30');
 INSERT INTO field_mapping_rule (SOURCE_TYPE, TARGET_TYPE, NOTE) VALUES('time', 'string', '字符类型');
 INSERT INTO field_mapping_rule (SOURCE_TYPE, TARGET_TYPE, NOTE) VALUES('money', 'decimal(19,4)', 'sqlserver的金额类型');
+
+
+-- 添加批量采集配置
+INSERT INTO system_config (config_group, config_key, config_value, note) 
+VALUES ('batch_collection', 'enabled', 'true', '是否启用每日批量采集');
+
+INSERT INTO system_config (config_group, config_key, config_value, note) 
+VALUES ('batch_collection', 'cron_expression', '0 30 16 * * MON-FRI', '批量采集的cron表达式');
+
+INSERT INTO system_config (config_group, config_key, config_value, note) 
+VALUES ('batch_collection', 'max_concurrent_jobs', '5', '批量采集最大并发作业数');

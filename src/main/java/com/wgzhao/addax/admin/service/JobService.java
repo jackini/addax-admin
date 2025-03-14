@@ -243,4 +243,90 @@ public class JobService {
         
         return result;
     }
+    
+    /**
+     * 批量触发作业
+     * @param jobGroup 作业组（可选）
+     * @param includeDisabled 是否包含禁用的作业
+     * @return 触发结果
+     */
+    @Transactional
+    public Map<String, Object> triggerBatchJobs(String jobGroup, boolean includeDisabled) {
+        List<CollectJob> jobs;
+        
+        // 根据条件查询作业
+        if (jobGroup != null && !jobGroup.trim().isEmpty()) {
+            // 如果指定了作业组，则只触发该组的作业
+            if (includeDisabled) {
+                // 包含所有状态的作业
+                jobs = jobRepository.findByJobGroup(jobGroup);
+            } else {
+                // 只包含未运行状态的作业
+                jobs = jobRepository.findByJobGroupAndJobStatus(jobGroup, "N");
+            }
+        } else {
+            // 未指定作业组，触发所有作业
+            if (includeDisabled) {
+                // 包含所有状态的作业，但排除运行中的作业
+                jobs = jobRepository.findByJobStatusNot("R");
+            } else {
+                // 只包含未运行状态的作业
+                jobs = jobRepository.findByJobStatus("N");
+            }
+        }
+        
+        logger.info("批量触发：找到 {} 个符合条件的作业", jobs.size());
+        
+        int successCount = 0;
+        int failureCount = 0;
+        List<Map<String, Object>> triggeredJobs = new ArrayList<>();
+        
+        // 批量触发作业
+        for (CollectJob job : jobs) {
+            try {
+                // 创建执行记录
+                Long executionId = jobExecutionService.createJobExecution(job.getId(), "MANUAL_BATCH");
+                
+                // 更新作业状态
+                job.setJobStatus("R"); // 运行中
+                job.setLastFireTime(LocalDateTime.now());
+                jobRepository.save(job);
+                
+                // 提交到作业队列
+                jobQueue.enqueue(job);
+                
+                // 记录成功信息
+                Map<String, Object> jobInfo = new HashMap<>();
+                jobInfo.put("jobId", job.getId());
+                jobInfo.put("jobName", job.getJobName());
+                jobInfo.put("executionId", executionId);
+                jobInfo.put("status", "success");
+                triggeredJobs.add(jobInfo);
+                
+                successCount++;
+                logger.info("成功触发作业 [{}]", job.getJobName());
+            } catch (Exception e) {
+                // 记录失败信息
+                Map<String, Object> jobInfo = new HashMap<>();
+                jobInfo.put("jobId", job.getId());
+                jobInfo.put("jobName", job.getJobName());
+                jobInfo.put("status", "failure");
+                jobInfo.put("error", e.getMessage());
+                triggeredJobs.add(jobInfo);
+                
+                failureCount++;
+                logger.error("触发作业 [{}] 失败", job.getJobName(), e);
+            }
+        }
+        
+        // 构建返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalJobs", jobs.size());
+        result.put("successCount", successCount);
+        result.put("failureCount", failureCount);
+        result.put("triggeredJobs", triggeredJobs);
+        result.put("triggerTime", LocalDateTime.now());
+        
+        return result;
+    }
 }
