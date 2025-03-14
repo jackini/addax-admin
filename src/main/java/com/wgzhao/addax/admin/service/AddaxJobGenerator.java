@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.wgzhao.addax.admin.model.CollectTask;
+import com.wgzhao.addax.admin.model.CollectTask_;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.model.DataSource;
@@ -33,7 +33,7 @@ public class AddaxJobGenerator {
     private static final ObjectMapper mapper = new ObjectMapper();
 
 
-    public Map<String, Object> generateJobConfig(CollectTask task) {
+    public Map<String, Object> generateJobConfig(CollectTask_ task) {
         // Get necessary data
         HdfsTemplate hdfsTemplate = task.getHdfsTemplate();
         DataSource dataSource = task.getSource();

@@ -244,3 +244,64 @@ create table if not exists users(
 #         group_id bigint not null,
 #         constraint fk_group_members_group foreign key(group_id) references groups(id)
 # );
+
+
+-- 采集调度工具设计方案（基于 collect_job 和 job_execution ）
+
+根据您的要求，我将重新实现采集调度工具的设计方案，以 collect_job 和 job_execution 为核心。以下是完整的设计方案：
+
+## 数据库表设计
+
+首先，需要在您现有的数据库结构中添加以下表：
+```sql
+-- 采集作业表
+CREATE TABLE IF NOT EXISTS collect_job (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '作业ID',
+    job_name VARCHAR(100) NOT NULL COMMENT '作业名称',
+    job_group VARCHAR(50) DEFAULT 'DEFAULT' COMMENT '作业分组',
+    cron_expression VARCHAR(50) NOT NULL COMMENT '定时任务表达式',
+    job_status CHAR(1) NOT NULL DEFAULT 'N' COMMENT '作业状态：N-未运行, R-运行中, P-暂停, X-已禁用',
+    concurrent_flag TINYINT NOT NULL DEFAULT 0 COMMENT '是否允许并发执行：0-禁止，1-允许',
+    timeout_secs INT DEFAULT 7200 COMMENT '超时时间（秒）',
+    retry_times INT DEFAULT 3 COMMENT '重试次数',
+    retry_interval INT DEFAULT 60 COMMENT '重试间隔（秒）',
+    description VARCHAR(500) COMMENT '作业描述',
+    next_fire_time DATETIME COMMENT '下次执行时间',
+    last_fire_time DATETIME COMMENT '上次执行时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_job_name (job_name)
+) engine = innodb default charset 'utf8' COMMENT='采集作业表';
+
+-- 作业任务关联表
+CREATE TABLE IF NOT EXISTS job_task_relation (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '关联ID',
+    job_id BIGINT NOT NULL COMMENT '作业ID',
+    task_id BIGINT NOT NULL COMMENT '任务ID',
+    task_order INT NOT NULL DEFAULT 1 COMMENT '任务执行顺序',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_job_task (job_id, task_id),
+    KEY idx_task_id (task_id),
+    CONSTRAINT fk_relation_job FOREIGN KEY (job_id) REFERENCES collect_job(id),
+    CONSTRAINT fk_relation_task FOREIGN KEY (task_id) REFERENCES collect_task(id)
+) engine = innodb default charset 'utf8' COMMENT='作业任务关联表';
+
+-- 作业执行记录表
+CREATE TABLE IF NOT EXISTS job_execution (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '执行ID',
+    job_id BIGINT NOT NULL COMMENT '作业ID',
+    start_time DATETIME NOT NULL COMMENT '开始时间',
+    end_time DATETIME COMMENT '结束时间',
+    duration INT COMMENT '执行时长（秒）',
+    exec_status VARCHAR(20) NOT NULL COMMENT '执行状态：WAITING, RUNNING, SUCCESS, FAILED, TIMEOUT',
+    trigger_type VARCHAR(20) COMMENT '触发类型：MANUAL, SCHEDULED',
+    error_message TEXT COMMENT '错误信息',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    KEY idx_job_id (job_id),
+    KEY idx_start_time (start_time),
+    KEY idx_status (exec_status),
+    CONSTRAINT fk_execution_job FOREIGN KEY (job_id) REFERENCES collect_job(id)
+) engine = innodb default charset 'utf8' COMMENT='作业执行记录表';
+```
+
+

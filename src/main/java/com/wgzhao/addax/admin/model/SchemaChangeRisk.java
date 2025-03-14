@@ -21,7 +21,7 @@ public class SchemaChangeRisk {
 
     @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
-    private CollectTask task;
+    private CollectTask_ task;
 
     @Column(name = "source_table", nullable = false, length = 200)
     private String sourceTable;
