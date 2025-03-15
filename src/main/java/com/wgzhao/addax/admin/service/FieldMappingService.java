@@ -30,6 +30,8 @@ public class FieldMappingService
     }
 
     public String getTargetTypeBySourceType(String sourceType) {
-        return fieldMappingRepository.findTargetTypeBySourceType(sourceType.toLowerCase()).orElse("string");
+        return fieldMappingRepository.findTargetTypeBySourceType(sourceType)
+                .map(FieldMapping::getTargetType)
+                .orElse("string"); // Default to original type if not found
     }
 }

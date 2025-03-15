@@ -60,4 +60,7 @@ public interface JobRepository extends JpaRepository<CollectJob, Long> {
      * @return 作业列表
      */
     List<CollectJob> findByJobStatus(String jobStatus);
+
+    @Query("SELECT j FROM CollectJob j WHERE j.jobStatus = 'N' AND j.cronExpression IS NOT NULL AND j.lastFireTime IS NULL")
+    List<CollectJob> findNeedInitJobs();
 }

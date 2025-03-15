@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -64,8 +65,15 @@ public class JobController {
         
         // 计算下次执行时间
         job.setNextFireTime(cronService.getNextExecutionTime(job.getCronExpression(), LocalDateTime.now()));
-        
+
+        // 首先设置 状态为 I，表示初始化，避免被调度执行
+        job.setJobStatus("I");
         CollectJob createdJob = jobService.createJob(job);
+
+        // 同步表结构信息到 table_column 表
+        jobService.syncTableColumns(createdJob);
+        createdJob.setJobStatus("N");
+        jobService.updateJob(createdJob);
         return ResponseEntity.ok(createdJob);
     }
     
@@ -113,11 +121,11 @@ public class JobController {
             return ResponseEntity.notFound().build();
         }
         
-        Long executionId = jobService.triggerJob(id);
+        JobExecution execution = jobService.triggerJob(id);
         
         Map<String, Object> response = new HashMap<>();
         response.put("jobId", id);
-        response.put("executionId", executionId);
+        response.put("executionId", execution.getJobId());
         response.put("message", "Job triggered successfully");
         
         return ResponseEntity.ok(response);

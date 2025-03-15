@@ -115,21 +115,20 @@ CREATE TABLE IF NOT EXISTS schema_change_risk (
 ) engine = innodb default charset 'utf8'  COMMENT='表结构变更风险表';
 
 -- 源表元数据表
-CREATE TABLE IF NOT EXISTS source_table_meta (
+CREATE TABLE IF NOT EXISTS table_columns (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '元数据ID',
-    task_id BIGINT NOT NULL COMMENT '任务ID',
-    table_name VARCHAR(200) NOT NULL COMMENT '表名',
-    schema_name VARCHAR(100) COMMENT '模式名',
+    collect_id BIGINT NOT NULL COMMENT '任务ID',
     column_name VARCHAR(100) NOT NULL COMMENT '列名',
     column_type VARCHAR(100) NOT NULL COMMENT '列类型',
     column_position INT NOT NULL COMMENT '列位置',
     is_primary_key TINYINT NOT NULL DEFAULT 0 COMMENT '是否主键：0-否，1-是',
     is_nullable TINYINT NOT NULL DEFAULT 1 COMMENT '是否可为空：0-否，1-是',
     column_comment VARCHAR(500) COMMENT '列注释',
+    target_column_name VARCHAR(100) COMMENT '目标列名',
+    target_column_type VARCHAR(100) COMMENT '目标列类型',
     last_check_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后检查时间',
-    INDEX idx_task_id (task_id),
-    INDEX idx_table_name (table_name),
-    CONSTRAINT fk_meta_task FOREIGN KEY (task_id) REFERENCES collect_task(id)
+    INDEX idx_task_id (collect_id),
+    CONSTRAINT fk_meta_task FOREIGN KEY (collect_id) REFERENCES collect_job(id)
 ) engine = innodb default charset 'utf8'  COMMENT='源表元数据表';
 
 -- 系统配置表

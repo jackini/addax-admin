@@ -6,25 +6,20 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "source_table_meta")
+@Table(name = "table_column")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
 @Getter
-public class SourceTableMeta {
+public class TableColumn
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "task_id", nullable = false)
-    private Long taskId;
-
-    @Column(name = "table_name", nullable = false)
-    private String tableName;
-
-    @Column(name = "schema_name")
-    private String schemaName;
+    @JoinColumn(name = "collect_id", nullable = false)
+    private Long collectId;
 
     @Column(name = "column_name", nullable = false)
     private String columnName;
@@ -44,7 +39,10 @@ public class SourceTableMeta {
     @Column(name = "column_comment")
     private String columnComment;
 
-    @Column(name = "last_check_time", nullable = false)
-    private LocalDateTime lastCheckTime;
+    @Column(name = "target_column_name")
+    private String targetColumnName;
+
+    @Column(name = "target_column_type")
+    private String targetColumnType;
 
 }

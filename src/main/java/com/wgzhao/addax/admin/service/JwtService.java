@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.dto.AuthRequestDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -12,7 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
@@ -23,12 +22,12 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Slf4j
-@Component
+@Service
 public class JwtService
 {
     public final static String SECRET = "4017CCCC60E17DE5C84CF03C6CBE559413EA1606";
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:86400000}")
     private int accessTokenExpiration;
 
     private final static SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes());

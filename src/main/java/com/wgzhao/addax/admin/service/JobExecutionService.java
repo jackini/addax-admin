@@ -4,6 +4,7 @@ import com.wgzhao.addax.admin.model.CollectJob;
 import com.wgzhao.addax.admin.model.JobExecution;
 import com.wgzhao.addax.admin.repository.JobExecutionRepository;
 import com.wgzhao.addax.admin.repository.JobRepository;
+import com.wgzhao.addax.admin.scheduler.JobQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,14 +26,17 @@ public class JobExecutionService {
     private final JobExecutionRepository jobExecutionRepository;
     private final JobRepository jobRepository;
     private final AddaxJsonGenerator addaxJsonGenerator;
+    private final JobQueue jobQueue;
 
     @Autowired
     public JobExecutionService(JobExecutionRepository jobExecutionRepository, 
                               JobRepository jobRepository,
-                              AddaxJsonGenerator addaxJsonGenerator) {
+                              AddaxJsonGenerator addaxJsonGenerator,
+            JobQueue jobQueue) {
         this.jobExecutionRepository = jobExecutionRepository;
         this.jobRepository = jobRepository;
         this.addaxJsonGenerator = addaxJsonGenerator;
+        this.jobQueue = jobQueue;
     }
 
     /**
@@ -42,11 +46,11 @@ public class JobExecutionService {
      * @return 执行记录ID
      */
     @Transactional
-    public Long createJobExecution(Long jobId, String triggerType) {
+    public JobExecution createJobExecution(Long jobId, String triggerType) {
         Optional<CollectJob> jobOpt = jobRepository.findById(jobId);
-        if (!jobOpt.isPresent()) {
+        if (jobOpt.isEmpty()) {
             log.error("创建作业执行记录失败：作业不存在，ID: {}", jobId);
-            throw new IllegalArgumentException("作业不存在");
+            return null;
         }
 
         CollectJob job = jobOpt.get();
@@ -62,9 +66,10 @@ public class JobExecutionService {
         execution.setAddaxJson(addaxJson);
         
         JobExecution savedExecution = jobExecutionRepository.save(execution);
+
         log.info("已创建作业执行记录，ID: {}, 作业ID: {}", savedExecution.getId(), jobId);
         
-        return savedExecution.getId();
+        return savedExecution;
     }
     
     /**
@@ -131,16 +136,8 @@ public class JobExecutionService {
      * @return 更新后的执行记录
      */
     @Transactional
-    public Optional<JobExecution> completeExecution(Long executionId, String status, String errorMessage) {
-        log.info("完成执行记录，ID: {}, 状态: {}", executionId, status);
-        
-        Optional<JobExecution> executionOpt = jobExecutionRepository.findById(executionId);
-        if (!executionOpt.isPresent()) {
-            log.error("完成执行记录失败：执行记录不存在，ID: {}", executionId);
-            return Optional.empty();
-        }
-        
-        JobExecution execution = executionOpt.get();
+    public void completeExecution(JobExecution execution, String status, String errorMessage) {
+
         execution.setExecStatus(status);
         execution.setEndTime(LocalDateTime.now());
         
@@ -157,9 +154,7 @@ public class JobExecutionService {
         
         JobExecution updatedExecution = jobExecutionRepository.save(execution);
         log.info("已完成执行记录，ID: {}, 状态: {}, 耗时: {}秒", 
-                executionId, status, updatedExecution.getDuration());
-        
-        return Optional.of(updatedExecution);
+                execution.getId(), status, updatedExecution.getDuration());
     }
     
     /**
