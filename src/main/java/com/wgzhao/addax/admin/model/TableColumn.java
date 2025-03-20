@@ -27,6 +27,12 @@ public class TableColumn
     @Column(name = "column_type", nullable = false)
     private String columnType;
 
+    @Column(name = "column_precision", nullable = false)
+    private Integer columnPrecision;
+
+    @Column(name = "column_scale", nullable = false)
+    private Integer columnScale;
+
     @Column(name = "column_position", nullable = false)
     private Integer columnPosition;
 

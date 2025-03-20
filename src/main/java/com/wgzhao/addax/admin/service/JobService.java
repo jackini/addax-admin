@@ -3,11 +3,13 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.CollectJob;
 import com.wgzhao.addax.admin.model.CollectTask;
 import com.wgzhao.addax.admin.model.DataSource;
+import com.wgzhao.addax.admin.model.HdfsTemplate;
 import com.wgzhao.addax.admin.model.JobExecution;
 import com.wgzhao.addax.admin.model.JobTaskRelation;
 import com.wgzhao.addax.admin.model.TableColumn;
 import com.wgzhao.addax.admin.model.TableMetadata;
 import com.wgzhao.addax.admin.repository.DataSourceRepository;
+import com.wgzhao.addax.admin.repository.HdfsTemplateRepository;
 import com.wgzhao.addax.admin.repository.JobRepository;
 import com.wgzhao.addax.admin.repository.JobTaskRelationRepository;
 import com.wgzhao.addax.admin.repository.TableColumnRepository;
@@ -15,12 +17,16 @@ import com.wgzhao.addax.admin.repository.TaskRepository;
 import com.wgzhao.addax.admin.scheduler.JobQueue;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -34,9 +40,9 @@ import java.util.Optional;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class JobService
 {
-    private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
     private final JobRepository jobRepository;
     private final TaskRepository taskRepository;
@@ -46,6 +52,7 @@ public class JobService
     private final FieldMappingService fieldMappingService;
     private final TableColumnRepository tableColumnRepository;
     private final DataSourceRepository dataSourceRepository;
+    private final HdfsTemplateRepository hdfsTemplateRepository;
 
     /**
      * 获取所有作业
@@ -99,7 +106,7 @@ public class JobService
         }
 
         CollectJob savedJob = jobRepository.save(job);
-        logger.info("已创建新作业，ID: {}, 名称: {}", savedJob.getId(), savedJob.getJobName());
+        log.info("已创建新作业，ID: {}, 名称: {}", savedJob.getId(), savedJob.getJobName());
         return savedJob;
     }
 
@@ -113,7 +120,7 @@ public class JobService
     public CollectJob updateJob(CollectJob job)
     {
         CollectJob savedJob = jobRepository.save(job);
-        logger.info("已更新作业，ID: {}, 名称: {}", savedJob.getId(), savedJob.getJobName());
+        log.info("已更新作业，ID: {}, 名称: {}", savedJob.getId(), savedJob.getJobName());
         return savedJob;
     }
 
@@ -130,7 +137,7 @@ public class JobService
 
         // 再删除作业
         jobRepository.deleteById(id);
-        logger.info("已删除作业，ID: {}", id);
+        log.info("已删除作业，ID: {}", id);
     }
 
     /**
@@ -156,7 +163,7 @@ public class JobService
         // 提交到作业队列
         jobQueue.enqueue(job);
 
-        logger.info("已手动触发作业，ID: {}, 名称: {}", id, job.getJobName());
+        log.info("已手动触发作业，ID: {}, 名称: {}", id, job.getJobName());
         return jobExecution;
     }
 
@@ -175,7 +182,7 @@ public class JobService
         job.setJobStatus("P"); // 暂停
         CollectJob savedJob = jobRepository.save(job);
 
-        logger.info("已暂停作业，ID: {}, 名称: {}", id, job.getJobName());
+        log.info("已暂停作业，ID: {}, 名称: {}", id, job.getJobName());
         return savedJob;
     }
 
@@ -194,7 +201,7 @@ public class JobService
         job.setJobStatus("N"); // 未运行
         CollectJob savedJob = jobRepository.save(job);
 
-        logger.info("已恢复作业，ID: {}, 名称: {}", id, job.getJobName());
+        log.info("已恢复作业，ID: {}, 名称: {}", id, job.getJobName());
         return savedJob;
     }
 
@@ -215,12 +222,12 @@ public class JobService
             // 更新执行顺序
             existing.setTaskOrder(order);
             jobTaskRelationRepository.save(existing);
-            logger.info("已更新任务 {} 与作业 {} 的关联顺序为 {}", taskId, jobId, order);
+            log.info("已更新任务 {} 与作业 {} 的关联顺序为 {}", taskId, jobId, order);
         }
         else {
             // 创建新关联
             jobTaskRelationRepository.createJobTaskRelation(jobId, taskId, order);
-            logger.info("已将任务 {} 关联到作业 {}, 执行顺序: {}", taskId, jobId, order);
+            log.info("已将任务 {} 关联到作业 {}, 执行顺序: {}", taskId, jobId, order);
         }
     }
 
@@ -237,7 +244,7 @@ public class JobService
 
         if (relation != null) {
             jobTaskRelationRepository.delete(relation);
-            logger.info("已解除任务 {} 与作业 {} 的关联", taskId, jobId);
+            log.info("已解除任务 {} 与作业 {} 的关联", taskId, jobId);
         }
     }
 
@@ -307,7 +314,7 @@ public class JobService
             }
         }
 
-        logger.info("批量触发：找到 {} 个符合条件的作业", jobs.size());
+        log.info("批量触发：找到 {} 个符合条件的作业", jobs.size());
 
         int successCount = 0;
         int failureCount = 0;
@@ -336,7 +343,7 @@ public class JobService
                 triggeredJobs.add(jobInfo);
 
                 successCount++;
-                logger.info("成功触发作业 [{}]", job.getJobName());
+                log.info("成功触发作业 [{}]", job.getJobName());
             }
             catch (Exception e) {
                 // 记录失败信息
@@ -348,7 +355,7 @@ public class JobService
                 triggeredJobs.add(jobInfo);
 
                 failureCount++;
-                logger.error("触发作业 [{}] 失败", job.getJobName(), e);
+                log.error("触发作业 [{}] 失败", job.getJobName(), e);
             }
         }
 
@@ -373,7 +380,7 @@ public class JobService
     @Transactional
     public void syncTableColumns(CollectJob collectJob)
     {
-        logger.info("开始同步作业 [{}] 的表字段信息", collectJob.getJobName());
+        log.info("开始同步作业 [{}] 的表字段信息", collectJob.getJobName());
 
         String sourceTable = collectJob.getSourceTable();
         String targetTable = collectJob.getTargetTable();
@@ -384,7 +391,7 @@ public class JobService
             List<TableMetadata> columns = getSourceTableColumns(collectJob);
 
             if (columns.isEmpty()) {
-                logger.warn("无法获取源表 [{}] 的字段信息", sourceTable);
+                log.warn("无法获取源表 [{}] 的字段信息", sourceTable);
                 return;
             }
 
@@ -400,13 +407,13 @@ public class JobService
                 tableColumnRepository.save(tableColumn);
             }
 
-            logger.info("成功同步任务 [{}] 的表字段信息，源表: {}, 目标表: {}", collectJob.getId(), sourceTable, targetTable);
+            log.info("成功同步任务 [{}] 的表字段信息，源表: {}, 目标表: {}", collectJob.getId(), sourceTable, targetTable);
         }
         catch (Exception e) {
-            logger.error("同步任务 [{}] 表字段时出错", collectJob.getId(), e);
+            log.error("同步任务 [{}] 表字段时出错", collectJob.getId(), e);
         }
 
-        logger.info("完成作业 [{}] 的表字段同步", collectJob.getJobName());
+        log.info("完成作业 [{}] 的表字段同步", collectJob.getJobName());
     }
 
     /**
@@ -446,7 +453,7 @@ public class JobService
             return columns;
         }
         catch (Exception e) {
-            logger.error("获取源表字段信息时出错", e);
+            log.error("获取源表字段信息时出错", e);
             return new ArrayList<>();
         }
     }
@@ -481,5 +488,64 @@ public class JobService
         }
 
         return sourceColumnType;
+    }
+
+    public boolean createHiveTable(CollectJob createdJob)
+    {
+        int hdfsTemplateId = createdJob.getHdfsTemplateId();
+        HdfsTemplate hdfsTemplate = hdfsTemplateRepository.findById(hdfsTemplateId).orElse(null);
+        if (hdfsTemplate == null) {
+            log.error("HDFS模板不存在，ID: {}", hdfsTemplateId);
+            return false;
+        }
+        String createSql = """
+                create if not exists external table %s.%s (
+                """;
+        List<TableColumn> columns = tableColumnRepository.findByCollectIdOrderByColumnPositionDesc(createdJob.getId());
+        List<String> columnDefine = new ArrayList<>();
+        for (TableColumn column : columns) {
+            if (column.getTargetColumnType().equalsIgnoreCase("decimal")) {
+                // add precision and scale
+                columnDefine.add(
+                        STR."\{column.getTargetColumnName()} \{column.getTargetColumnType()}(\{column.getColumnPrecision()}, \{column.getColumnScale()}) comment '\{column.getColumnComment()}'");
+            } else {
+                columnDefine.add(
+                        STR."\{column.getTargetColumnName()} \{column.getTargetColumnType()} comment '\{column.getColumnComment()}'");
+            }
+        }
+        createSql += String.join(",", columnDefine);
+        createSql += STR."""
+                )
+                partitioned by (dt string)
+                row format delimited fields terminated by '\0x00'
+                stored as \{hdfsTemplate.getCompressType()}
+                location '\{hdfsTemplate.getBasePath()}/\{createdJob.getSourceSchema()}/\{createdJob.getSourceTable()}
+                tblproperties ();
+                """;
+        // create hive table with hive command line
+        try {
+            ProcessBuilder pb = new ProcessBuilder("hive", "-e", createSql);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                log.info(line);
+            }
+
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0) {
+                log.error("Addax execution failed with exit code: {}", exitCode);
+                return false;
+            }
+        }
+        catch (InterruptedException | IOException e) {
+            log.error("Create hive table failed", e);
+            return false;
+        }
+        return true;
     }
 }

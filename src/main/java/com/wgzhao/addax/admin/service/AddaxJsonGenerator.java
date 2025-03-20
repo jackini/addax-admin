@@ -58,7 +58,7 @@ public class AddaxJsonGenerator {
             Optional<HdfsTemplate> hdfsTemplateOpt = hdfsTemplateRepository.findById(job.getHdfsTemplateId());
             Optional<SourceTemplate> sourceTemplateOpt = sourceTemplateRepository.findById(job.getSourceTemplateId());
 
-            if (!dataSourceOpt.isPresent() || !hdfsTemplateOpt.isPresent() || !sourceTemplateOpt.isPresent()) {
+            if (dataSourceOpt.isEmpty() || hdfsTemplateOpt.isEmpty() || sourceTemplateOpt.isEmpty()) {
                 log.error("生成Addax JSON失败：数据源或模板不存在，作业ID: {}", job.getId());
                 return null;
             }
@@ -159,7 +159,7 @@ public class AddaxJsonGenerator {
 
         writerParamNode.put("writeMode", "overwrite");
         writerParamNode.put("fieldDelimiter", "\u0001");
-        writerParamNode.put("compress", "SNAPPY");
+        writerParamNode.put("compress", "lz4");
         writerParamNode.put("hdfsSitePath", hdfsTemplate.getConfigPath());
         writerParamNode.set("hadoopConfig", mapper.valueToTree(hdfsTemplate.getProperties()));
 
@@ -185,7 +185,7 @@ public class AddaxJsonGenerator {
     private String generateHdfsPath(String basePath, String tableName) {
         // basePath/table/logdate='yyyy-MM-dd'
         LocalDate date =  LocalDate.now();
-        return String.format("%s/%s/logdate='%s'", basePath, tableName, date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        return String.format("%s/%s/logdate=%s", basePath, tableName, date.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
     }
     // Helper method to convert columns to JSON array
     private String sourceColumn(List<Pair<String, String>> columns) {

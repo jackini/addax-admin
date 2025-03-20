@@ -72,8 +72,12 @@ public class JobController {
 
         // 同步表结构信息到 table_column 表
         jobService.syncTableColumns(createdJob);
-        createdJob.setJobStatus("N");
-        jobService.updateJob(createdJob);
+        if (jobService.createHiveTable(createdJob)) {
+            createdJob.setJobStatus("N");
+            jobService.updateJob(createdJob);
+        } else {
+            ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(createdJob);
     }
     

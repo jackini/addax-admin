@@ -120,6 +120,8 @@ CREATE TABLE IF NOT EXISTS table_columns (
     collect_id BIGINT NOT NULL COMMENT '任务ID',
     column_name VARCHAR(100) NOT NULL COMMENT '列名',
     column_type VARCHAR(100) NOT NULL COMMENT '列类型',
+    column_precision INT COMMENT '列精度',
+    column_scale INT COMMENT '列刻度',
     column_position INT NOT NULL COMMENT '列位置',
     is_primary_key TINYINT NOT NULL DEFAULT 0 COMMENT '是否主键：0-否，1-是',
     is_nullable TINYINT NOT NULL DEFAULT 1 COMMENT '是否可为空：0-否，1-是',

@@ -11,4 +11,6 @@ public interface TableColumnRepository
         extends JpaRepository<TableColumn, Long> {
 
     List<TableColumn> findByCollectId(Long id);
+
+    List<TableColumn> findByCollectIdOrderByColumnPositionDesc(Long id);
 }
